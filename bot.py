@@ -34,9 +34,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
+
+# sections.json is static content pushed with your code, so it stays next
+# to bot.py. subscribers.json and state.json change while the bot runs and
+# must survive redeploys, so they live in DATA_DIR instead -- on Railway,
+# mount your persistent Volume at this same path (see README).
+DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR / "data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 SECTIONS_FILE = BASE_DIR / "sections.json"
-SUBSCRIBERS_FILE = BASE_DIR / "subscribers.json"
-STATE_FILE = BASE_DIR / "state.json"
+SUBSCRIBERS_FILE = DATA_DIR / "subscribers.json"
+STATE_FILE = DATA_DIR / "state.json"
 
 # ---- Schedule config -------------------------------------------------
 # "three times a week" -> Monday / Wednesday / Friday at 09:00, Addis Ababa time.
