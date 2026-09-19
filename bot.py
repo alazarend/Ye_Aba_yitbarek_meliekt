@@ -47,10 +47,9 @@ SUBSCRIBERS_FILE = DATA_DIR / "subscribers.json"
 STATE_FILE = DATA_DIR / "state.json"
 
 # ---- Schedule config -------------------------------------------------
-# "three times a week" -> Monday / Wednesday / Friday at 09:00, Addis Ababa time.
-# Change SEND_DAYS / SEND_HOUR / SEND_MINUTE to whatever fits your subscribers.
-SEND_DAYS = (0, 2, 4)  # Mon=0 ... Sun=6  -> Mon, Wed, Fri
-SEND_HOUR = 9
+# Every day at 8:00 AM, Addis Ababa time.
+SEND_DAYS = (0, 1, 2, 3, 4, 5, 6)  # Mon=0 ... Sun=6 -- all seven days
+SEND_HOUR = 8
 SEND_MINUTE = 0
 TIMEZONE = "Africa/Addis_Ababa"
 
