@@ -12,7 +12,8 @@ Setup:
 Files this script creates/uses next to itself:
     sections.json    - produced by extract_sections.py (read-only here)
     subscribers.json - list of chat_ids who ran /start
-    state.json        - which section index goes out next
+    state.json        - which section index goes out next, and which was
+                         last sent (used to catch up new subscribers)
 """
 
 import asyncio
@@ -83,7 +84,7 @@ def save_subscribers(subs):
 
 
 def load_state():
-    return _load_json(STATE_FILE, {"next_index": 0})
+    return _load_json(STATE_FILE, {"next_index": 0, "last_sent_index": None})
 
 
 def save_state(state):
@@ -100,11 +101,26 @@ def load_sections():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     subs = load_subscribers()
-    if chat_id not in subs:
+    is_new = chat_id not in subs
+    if is_new:
         subs.add(chat_id)
         save_subscribers(subs)
         logger.info("New subscriber: %s", chat_id)
+
     await update.message.reply_text(WELCOME_TEXT)
+
+    # Catch the new subscriber up with whatever section was most recently
+    # sent, so they don't have to wait until tomorrow's scheduled send.
+    if is_new:
+        sections = load_sections()
+        state = load_state()
+        last_idx = state.get("last_sent_index")
+        if sections and last_idx is not None:
+            section = sections[last_idx % len(sections)]
+            try:
+                await context.bot.send_message(chat_id=chat_id, text=section["content"])
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Failed to send catch-up section to %s: %s", chat_id, exc)
 
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -152,6 +168,7 @@ async def send_next_section(context: ContextTypes.DEFAULT_TYPE):
             logger.error("Failed to send to %s: %s", chat_id, exc)
 
     # advance to next section, wrapping back to the start when the book ends
+    state["last_sent_index"] = idx
     state["next_index"] = (idx + 1) % len(sections)
     save_state(state)
     logger.info("Sent section %s to %d subscribers.", section["number"], len(subs))
